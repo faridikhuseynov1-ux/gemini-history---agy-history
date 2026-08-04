@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# agy-history v2 — Deep Antigravity Conversation History Browser
+#
+# COMMANDS:
+#   agy-history                         List last 30 conversations
+#   agy-history --limit 50              List last 50
+#   agy-history --search "react"        Search by keyword
+#   agy-history resume <ID>             Deep resume context for a conversation
+#   agy-history resume <ID> --raw       Full untruncated transcript
+#   agy-history resume <ID> --out FILE  Write context to a file
+#   agy-history resume <ID> --json      Summary as JSON
+#
+# INSTALLATION (run once):
+#   # Already done via symlink — /usr/local/bin/agy-history
+#   # Or manually: chmod +x this file && ln -sf $(realpath $0) /usr/local/bin/agy-history
+
+set -euo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SELF")"
+LIST_SCRIPT="$SCRIPT_DIR/list_conversations.py"
+RESUME_SCRIPT="$SCRIPT_DIR/resume_conversation.py"
+
+usage() {
+  cat <<'EOF'
+
+  📚  Antigravity History Browser v2
+  ────────────────────────────────────
+
+  USAGE:
+    agy-history [OPTIONS]                List past conversations
+    agy-history resume <ID> [OPTIONS]    Deep resume context
+
+  LIST OPTIONS:
+    --limit N       Show last N conversations (default: 30)
+    --search TEXT   Filter by keyword
+    --json          Machine-readable JSON output
+
+  RESUME OPTIONS:
+    --raw           Full untruncated transcript (very long)
+    --no-tools      Skip tool call details
+    --json          Output summary as JSON
+    --out FILE      Write context to file (great for piping into AGY)
+
+  EXAMPLES:
+    agy-history
+    agy-history --limit 10 --search "docker"
+    agy-history resume 3ee8ab89
+    agy-history resume 3ee8ab89-c036-4c2a-b64b-fa88f08b7874 --raw
+    agy-history resume 3ee8 --out /tmp/ctx.md
+
+EOF
+}
+
+main() {
+  if [[ $# -eq 0 ]]; then
+    python3 "$LIST_SCRIPT"
+    return
+  fi
+
+  case "$1" in
+    resume|r)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "[ERROR] Please provide a conversation ID."
+        echo "  Usage: agy-history resume <ID>"
+        exit 1
+      fi
+      python3 "$RESUME_SCRIPT" "$@"
+      ;;
+    list|ls)
+      shift
+      python3 "$LIST_SCRIPT" "$@"
+      ;;
+    --help|-h|help)
+      usage
+      ;;
+    *)
+      python3 "$LIST_SCRIPT" "$@"
+      ;;
+  esac
+}
+
+main "$@"
